@@ -1,0 +1,220 @@
+Turbo Assembler	 Version 3.1	    04/12/19 12:48:47	    Page 1
+lab_2.asm
+
+
+
+      1				     ;LAB5 Вариант 17
+      2
+      3				     ;макроопределение для вывода текста
+      4				     my_write MACRO text
+      5					     mov ah, 09h
+      6					     lea dx, text
+      7					     int 21h
+      8				     endm
+      9
+     10				     ;макроопределение для подсчета нулевых битов. t = x || l (x, если числа размером слова. l,	если+
+     11				     числа размером байта)
+     12				     do_mission	MACRO t
+     13					     local m1, m2, m3, m4
+     14					     mov cx, len
+     15					     mov flag, 0
+     16					     mov si, 0
+     17					     lea di, newmas
+     18					     m1:
+     19						     push cx
+     20						     mov ax, 0
+     21						     mov bx, 0
+     22						     ifidni <l>, <t>
+     23							     mov cx, 8
+     24						     endif
+     25						     ifidni <x>, <t>
+     26							     mov cx, 16
+     27							     mov flag, 1
+     28						     endif
+     29						     mov b&t, mas[si]
+     30						     m2:
+     31							     shr b&t, 1
+     32							     jc	m3
+     33							     inc al
+     34						     m3:
+     35							     loop m2
+     36							     mov byte ptr[di], al
+     37							     ifidni <l>, <t>
+     38								     inc si
+     39							     endif
+     40							     ifidni <x>, <t>
+     41								     add si, 2
+     42							     endif
+     43							     m4:
+     44							     inc di
+     45							     pop cx
+     46							     loop m1
+     47				     endm
+     48
+     49				     ;макроопределение для перевода числа в строку. Число, которое переводим должно находиться в    +
+     50				     регистре ax
+     51				     convert_to_string MACRO
+     52					     local convert1, convert2
+     53						     push cx
+     54						     mov cx, 2
+     55						     mov bx, 10
+     56						     convert1:
+     57							     mov dx, 0
+Turbo Assembler	 Version 3.1	    04/12/19 12:48:47	    Page 2
+lab_2.asm
+
+
+
+     58							     div bx
+     59							     add dx, 30h
+     60							     push dx
+     61							     loop convert1
+     62						     mov cx, 2
+     63						     convert2:
+     64							     pop dx
+     65							     mov ah, 2
+     66							     int 21h
+     67							     loop convert2
+     68						     pop cx
+     69				     endm
+     70
+     71	0000			     dseg segment
+     72	0000  54 68 65 20 63 6F	75+  greeting db 'The count of binary digits equal to 0	for each number:', 10, 13, '$'
+     73	      6E 74 20 6F 66 20	62+
+     74	      69 6E 61 72 79 20	64+
+     75	      69 67 69 74 73 20	65+
+     76	      71 75 61 6C 20 74	6F+
+     77	      20 30 20 66 6F 72	20+
+     78	      65 61 63 68 20 6E	75+
+     79	      6D 62 65 72 3A 0A	0D+
+     80	      24
+     81	0039  01 F9 00 07 02 15	     mas db 1, -7, 0, 7, 2, 21;, 9, 0, 16; исходный массив
+     82	003F  0006		     len dw ($-mas)/type mas; размер массива в байтах
+     83	0041  0A 0D 24		     nl	db 10, 13, '$'
+     84	0044  0000		     typemas dw	0
+     85	0046  00		     flag db 0
+     86	0047  00		     count_el db 0
+     87	0048  14*(??)		     newmas db 20 dup(?); массив, который будет	содержать количество нулевых байт чисел	массива	mas
+     88	005C			     dseg ends
+     89	0000			     cseg segment
+     90					     assume ds:dseg, es:dseg, cs:cseg
+     91	0000			     main proc far
+     92	0000  1E			     push ds
+     93	0001  2B C0			     sub ax, ax
+     94	0003  50			     push ax
+     95	0004  B8 0000s			     mov ax, dseg
+     96	0007  8E D8			     mov ds, ax
+     97	0009  8E C0			     mov es, ax
+     98
+     99					     my_write greeting
+1   100	000B  B4 09			     mov ah, 09h
+1   101	000D  BA 0000r			     lea dx, greeting
+1   102	0010  CD 21			     int 21h
+    103
+    104						     do_mission	l
+1   105	0012  8B 0E 003Fr		     mov cx, len
+1   106	0016  C6 06 0046r 00		     mov flag, 0
+1   107	001B  BE 0000			     mov si, 0
+1   108	001E  BF 0048r			     lea di, newmas
+1   109	0021				     ??0000:
+1   110	0021  51				     push cx
+1   111	0022  B8 0000				     mov ax, 0
+1   112	0025  BB 0000				     mov bx, 0
+1   113	0028  B9 0008					     mov cx, 8
+1   114	002B  8A 9C 0039r			     mov bl, mas[si]
+Turbo Assembler	 Version 3.1	    04/12/19 12:48:47	    Page 3
+lab_2.asm
+
+
+
+1   115	002F					     ??0001:
+1   116	002F  D0 EB					     shr bl, 1
+1   117	0031  72 02					     jc	??0002
+1   118	0033  FE C0					     inc al
+1   119	0035					     ??0002:
+1   120	0035  E2 F8					     loop ??0001
+1   121	0037  88 05					     mov byte ptr[di], al
+1   122	0039  46						     inc si
+1   123	003A						     ??0003:
+1   124	003A  47					     inc di
+1   125	003B  59					     pop cx
+1   126	003C  E2 E3					     loop ??0000
+    127					     ;Convert to string	and output this	string
+    128	003E  8B 0E 003Fr		     mov cx, len
+    129	0042  BE 0000			     mov si, 0
+    130	0045				     output:
+    131	0045  B8 0000				     mov ax, 0
+    132	0048  8A 84 0048r			     mov al, newmas[si]
+    133						     convert_to_string
+1   134	004C  51				     push cx
+1   135	004D  B9 0002				     mov cx, 2
+1   136	0050  BB 000A				     mov bx, 10
+1   137	0053					     ??0004:
+1   138	0053  BA 0000					     mov dx, 0
+1   139	0056  F7 F3					     div bx
+1   140	0058  83 C2 30					     add dx, 30h
+1   141	005B  52					     push dx
+1   142	005C  E2 F5					     loop ??0004
+1   143	005E  B9 0002				     mov cx, 2
+1   144	0061					     ??0005:
+1   145	0061  5A					     pop dx
+1   146	0062  B4 02					     mov ah, 2
+1   147	0064  CD 21					     int 21h
+1   148	0066  E2 F9					     loop ??0005
+1   149	0068  59				     pop cx
+    150	0069  46				     inc si
+    151						     my_write nl
+1   152	006A  B4 09			     mov ah, 09h
+1   153	006C  BA 0041r			     lea dx, nl
+1   154	006F  CD 21			     int 21h
+    155	0071  E2 D2				     loop output
+    156	0073  B4 01			     mov ah, 1h
+    157	0075  CD 21			     int 21h
+    158	0077  CB			 ret
+    159	0078			     main endp
+    160	0078			     cseg ends
+    161				     end main
+Turbo Assembler	 Version 3.1	    04/12/19 12:48:47	    Page 4
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??0000				  Near	 CSEG:0021
+??0001				  Near	 CSEG:002F
+??0002				  Near	 CSEG:0035
+??0003				  Near	 CSEG:003A
+??0004				  Near	 CSEG:0053
+??0005				  Near	 CSEG:0061
+??DATE				  Text	 "04/12/19"
+??FILENAME			  Text	 "lab_2	  "
+??TIME				  Text	 "12:48:46"
+??VERSION			  Number 030A
+@CPU				  Text	 0101H
+@CURSEG				  Text	 CSEG
+@FILENAME			  Text	 LAB_2
+@WORDSIZE			  Text	 2
+COUNT_EL			  Byte	 DSEG:0047
+FLAG				  Byte	 DSEG:0046
+GREETING			  Byte	 DSEG:0000
+LEN				  Word	 DSEG:003F
+MAIN				  Far	 CSEG:0000
+MAS				  Byte	 DSEG:0039
+NEWMAS				  Byte	 DSEG:0048
+NL				  Byte	 DSEG:0041
+OUTPUT				  Near	 CSEG:0045
+TYPEMAS				  Word	 DSEG:0044
+
+Macro Name
+
+CONVERT_TO_STRING
+DO_MISSION
+MY_WRITE
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+CSEG				  16  0078 Para	  none
+DSEG				  16  005C Para	  none
+
